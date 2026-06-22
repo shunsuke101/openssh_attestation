@@ -68,15 +68,19 @@ dup_strings(char ***dstp, size_t *ndstp, char **src, size_t nsrc)
 	return 0;
 }
 
-/*この関数には注意を払う*/
 #define OPTIONS_CRITICAL	1
 #define OPTIONS_EXTENSIONS	2
-static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int which, int crit)
+static int
+cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob,
+    u_int which, int crit)
 {
-	char *command, *allowed, *value; /*valueを定義した*/
+	char *command, *allowed, *value;
 	char *name = NULL;
 	struct sshbuf *c = NULL, *data = NULL;
 	int r, ret = -1, found;
+	u_char buf[BUFSIZ];
+	FILE *fp;
+	int len;
 
 	if ((c = sshbuf_fromb(oblob)) == NULL) {
 		error_f("sshbuf_fromb failed");
@@ -169,20 +173,24 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 			} else {
 				if ((r = sshbuf_get_cstring(data, &value, NULL)) != 0 )
 					fatal_fr(r,"parse option");
-				if (strcmp(name, "nonce_bin.b64") == 0) {
-					/*valueをどうするか*/
+				if (strcmp(name,"quote_msg.b64") == 0){
+					logit("Certificate extension %s is supported", name);
 					len=b64_pton(value,buf,sizeof(buf));
-					logit("Certificate extension \"%s\" "
-				    	"is supported and data=%s", name,buf);
-					
-				}else if ((name, "quote_msg.b64") == 0){
+					fp=fopen("/home/ubuntu/.ssh/certificate_quote.msg","wb");
+					fwrite(buf,1,len,fp);
+					fclose(fp);
+				}else if (strcmp(name, "quote_sig.b64") == 0){
+					logit("Certificate extension %s is supported ",name);
 					len=b64_pton(value,buf,sizeof(buf));
-					logit("Certificate extension \"%s\" "
-				    	"is supported and data=%s", name,buf);
-				}else if ((name, "quote_sig.b64") == 0){
+					fp=fopen("/home/ubuntu/.ssh/certificate_quote.sig","wb");
+					fwrite(buf,1,len,fp);
+					fclose(fp);
+				}else if (strcmp(name,"nonce_bin.b64") == 0) {
+					logit("Certificate extension %s is supported", name);
 					len=b64_pton(value,buf,sizeof(buf));
-					logit("Certificate extension \"%s\" "
-				    	"is supported and data=%s", name,buf);
+					fp=fopen("/home/ubuntu/.ssh/certificate_nonce.bin","wb");
+					fwrite(buf,1,len,fp);
+					fclose(fp);
 				}else{
 					logit("Certificate extension \"%s\" "
 				    	"is not supported", name);

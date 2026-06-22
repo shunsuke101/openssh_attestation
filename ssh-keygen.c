@@ -2084,7 +2084,7 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fclose(fp);
 			}else if(strcmp(name,"nonce_bin.b64")==0){
 				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("test/certificate_nonce.bin","w");
+				fp=fopen("test/certificate_nonce.bin","wb");
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}

@@ -1,5 +1,4 @@
 
-TPM_DIR=$HOME/tpm/quote
 SSH_DIR=$HOME/.ssh
 
 tpm2_createprimary -C o -c primary.ctx -G rsa2048 -g sha256
@@ -16,7 +15,7 @@ base64 -w0 nonce.bin > nonce_bin.b64
 base64 -d nonce_bin.b64 > encoded_nonce.bin
 
 ssh-keygen -s $SSH_DIR/ca.key -I certificate_test -n ubuntu -z 1 \
-	-O extension:quote_msg.b64="$(cat $TPM_DIR/quote_msg.b64)"\
-	-O extension:quote_sig.b64="$(cat $TPM_DIR/quote_sig.b64)"\
-	-O extension:nonce_bin.b64="$(cat $TPM_DIR/nonce_bin.b64)"\
+	-O extension:quote_msg.b64="$(cat ./quote_msg.b64)"\
+	-O extension:quote_sig.b64="$(cat ./quote_sig.b64)"\
+	-O extension:nonce_bin.b64="$(cat ./nonce_bin.b64)"\
 	$SSH_DIR/test_cert.pub
