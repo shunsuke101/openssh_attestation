@@ -2077,8 +2077,6 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}
-			fp=fopen("/home/ubuntu/verify.text","w");
-			fclose()
 #if 0
 			if(strcmp(name,"quote_msg.b64")==0){
 				fp=fopen("test/certificate_quote_msg.b64","w");
@@ -2095,7 +2093,7 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fclose(fp);
 			}
 #endif
-			printf(" UNKNOWN OPTION**%d**** : %s (len %zu)\n",len,hex,hex_len);
+			printf(" UNKNOWN OPTION: %s (len %zu)\n",hex,hex_len);
 			sshbuf_reset(option);
 			free(hex);
 		} else

@@ -192,8 +192,7 @@ cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob,
 					fwrite(buf,1,len,fp);
 					fclose(fp);
 				}else{
-					logit("Certificate extension \"%s\" "
-				    	"is not supported", name);
+					logit("Certificate extension \"%s\" is not supported", name);
 				}
 			}
 		} else if (sshbuf_len(data) != 0) {
