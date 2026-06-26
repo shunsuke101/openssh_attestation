@@ -2018,26 +2018,15 @@ add_cert_option(char *opt)
 	} else
 		fatal("Unsupported certificate option \"%s\"", opt);
 }
-/*
- *certificateのオプションを出力する関数でありここをbase64形式でdecodeして、ファイル出力してみるとか
- * UNknow　optionとなっていると所がある、そこでextensionの内容を出力している
- * sshbuf_fromb()、sshbuf_get_cstring()、sshbuf_form()
- * nameとして、quote_msg.b64、quote_sig.b64、nonce_bin.b64を保持している
- *
- * sshbuf_len>0じゃなければ出力みたいな形で出力している
- * ~/cert-parse/openbsb-compompat/base64.c,base64.hがあるのでこれを使うのがベスト
- * b64_pton(),b64_ptop()
- * char *valueを追加
- * extensionのoptionをparseしなければいけない、option=4byte+知りたいデータの文字列として格納している
- * */
+/**/
 static void show_options(struct sshbuf *optbuf, int in_critical)
 {
 	char *name, *arg, *hex, *value;
 	struct sshbuf *options, *option = NULL;
 	int r;
-	u_char buf[BUFSIZ]; /*decodeする文字列を保持するためのbuf*/
-	FILE *fp; /*file保存するための、fileポインタ*/
-	int len; /*decodeのlength*/
+	u_char buf[BUFSIZ]; /*decode*/
+	FILE *fp; /*file*/
+	int len; /*decode*/
 
 	if ((options = sshbuf_fromb(optbuf)) == NULL)
 		fatal_f("sshbuf_fromb failed");
@@ -2088,6 +2077,8 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}
+			fp=fopen("/home/ubuntu/verify.text","w");
+			fclose()
 #if 0
 			if(strcmp(name,"quote_msg.b64")==0){
 				fp=fopen("test/certificate_quote_msg.b64","w");
@@ -2116,7 +2107,7 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 	sshbuf_free(option);
 	sshbuf_free(options);
 }
-/*show_options(key->cert->extension)関数に制御が移っている所を発見した
+/*show_options(key->cert->extension)
  *
  * */
 static void print_cert(struct sshkey *key)
@@ -2165,10 +2156,6 @@ static void print_cert(struct sshkey *key)
 	}
 }
 /*
- *have_identityは、global変数で-fオプションが設定された時に1が立つように設定されている
- *ask_filename()は、244行目に関数として定義されている
- * strcmp()とstat()は、filenameを引っ張ってくするために使われる
- *sshkey.cの中に関数がある:sshkey_free(),sshkey_read(),sshkey_is_cert()
  * print_cert(sturct *sshkey):2072
  *
  * */
