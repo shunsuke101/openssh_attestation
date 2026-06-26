@@ -2062,18 +2062,18 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fatal_fr(r,"parse option");
 			if(strcmp(name,"quote_msg.b64")==0){
 				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("test/certificate_quote.msg","wb");
+				fp=fopen("/home/ubuntutest/certificate_quote.msg","wb");
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}
 			else if(strcmp(name,"quote_sig.b64")==0){
 				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("test/certificate_quote.sig","wb");
+				fp=fopen("/home/ubuntu/test/certificate_quote.sig","wb");
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}else if(strcmp(name,"nonce_bin.b64")==0){
 				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("test/certificate_nonce.bin","wb");
+				fp=fopen("/home/ubuntutest/certificate_nonce.bin","wb");
 				fwrite(buf,1,len,fp);
 				fclose(fp);
 			}
