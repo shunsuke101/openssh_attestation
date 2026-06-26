@@ -1,0 +1,1 @@
+ gcc -o check_quote mytpm2_checkquote.c ~/tpm2-tools/lib/*.c  -I /usr/include/tss2 -I ~/tpm2-tools/lib -I ~/tpm2-tools/tools/ -Ilib -lssl -lcrypto -ltss2-esys -ltss2-mu -ltss2-tctildr  -ltss2-sys -ltss2-rc
