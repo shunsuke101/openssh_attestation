@@ -2024,9 +2024,10 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 	char *name, *arg, *hex, *value;
 	struct sshbuf *options, *option = NULL;
 	int r;
-	u_char buf[BUFSIZ]; /*decode*/
+	u_char buf[BUFSIZ]; /*decode buffer*/
+	u_char *quote_msg, *quote_sig, *nonce;
 	FILE *fp; /*file*/
-	int len; /*decode*/
+	int msg_len,sig_len,nonce_len; /*decode*/
 
 	if ((options = sshbuf_fromb(optbuf)) == NULL)
 		fatal_f("sshbuf_fromb failed");
@@ -2061,20 +2062,23 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 			if ((r = sshbuf_get_cstring(option, &value, NULL)) != 0 )
 				fatal_fr(r,"parse option");
 			if(strcmp(name,"quote_msg.b64")==0){
-				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("/home/ubuntutest/certificate_quote.msg","wb");
-				fwrite(buf,1,len,fp);
+				msg_len=b64_pton(value,buf,sizeof(buf));
+				quote_msg=buf;
+				fp=fopen("/home/ubuntu/test/test1_quote.msg","wb");
+				fwrite(quote_msg,1,msg_len,fp);
 				fclose(fp);
 			}
 			else if(strcmp(name,"quote_sig.b64")==0){
-				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("/home/ubuntu/test/certificate_quote.sig","wb");
-				fwrite(buf,1,len,fp);
+				sig_len=b64_pton(value,buf,sizeof(buf));
+				quote_sig=buf;
+				fp=fopen("/home/ubuntu/test/test1_quote.sig","wb");
+				fwrite(quote_sig,1,sig_len,fp);
 				fclose(fp);
 			}else if(strcmp(name,"nonce_bin.b64")==0){
-				len=b64_pton(value,buf,sizeof(buf));
-				fp=fopen("/home/ubuntutest/certificate_nonce.bin","wb");
-				fwrite(buf,1,len,fp);
+				nonce_len=b64_pton(value,buf,sizeof(buf));
+				nonce=buf;
+				fp=fopen("/home/ubuntu/test/test1_nonce.bin","wb");
+				fwrite(nonce,1,nonce_len,fp);
 				fclose(fp);
 			}
 #if 0
