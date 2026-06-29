@@ -107,6 +107,7 @@ static bool compare_pcr_selection(TPML_PCR_SELECTION *attest_sel, TPML_PCR_SELEC
 /* ------------------------------------------------------------------ *
  * verify
  * ------------------------------------------------------------------ */
+
 static bool verify(void) 
 {
     bool result = false;
@@ -220,6 +221,7 @@ err:
 /* ------------------------------------------------------------------ *
  * message_from_file
  * ------------------------------------------------------------------ */
+
 static TPM2B_ATTEST *message_from_file(const char *msg_file_path) 
 {
 
@@ -251,6 +253,7 @@ static TPM2B_ATTEST *message_from_file(const char *msg_file_path)
 /* ------------------------------------------------------------------ *
  * parse_selection_data_from_selection_string
  * ------------------------------------------------------------------ */
+
 static bool parse_selection_data_from_selection_string(FILE *pcr_input, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs)
 {
 
@@ -301,6 +304,7 @@ static bool parse_selection_data_from_selection_string(FILE *pcr_input, TPML_PCR
 /* ------------------------------------------------------------------ *
  * parse_selection_data_from_file
  * ------------------------------------------------------------------ */
+
 static bool parse_selection_data_from_file(FILE *pcr_input, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs) 
 {
 
@@ -360,6 +364,7 @@ static bool parse_selection_data_from_file(FILE *pcr_input, TPML_PCR_SELECTION *
 /* ------------------------------------------------------------------ *
  * parse_marshaled_selection_data
  * ------------------------------------------------------------------ */
+
 static bool parse_marshaled_selection_data(FILE *pcr_input, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs, unsigned long fsize) 
 {
 
@@ -417,6 +422,7 @@ error:
 /* ------------------------------------------------------------------ *
  * pcrs_from_file
  * ------------------------------------------------------------------ */
+
 static bool pcrs_from_file(const char *pcr_file_path, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs)
 {
 
@@ -486,7 +492,8 @@ static bool eventlog_from_file(tpm2_eventlog_context *evctx,const char *file_pat
 /* ------------------------------------------------------------------ *
  * init
  * ------------------------------------------------------------------ */
-static tool_rc init(void) {
+static tool_rc init(void) 
+{
 
     if (!(ctx.pubkey_file_path && ctx.flags.sig && ctx.flags.msg)) {
         LOG_ERR("--pubkey (-u), --msg (-m) and --sig (-s) are required");
