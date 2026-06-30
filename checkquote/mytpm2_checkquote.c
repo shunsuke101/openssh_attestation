@@ -159,8 +159,7 @@ static bool verify(void)
 
         rc = EVP_PKEY_CTX_set_signature_md(pkey_ctx, md);
         if (!rc) {
-            LOG_ERR("EVP_PKEY_CTX_set_signature_md failed: %s",
-                    ERR_error_string(ERR_get_error(), NULL));
+            LOG_ERR("EVP_PKEY_CTX_set_signature_md failed: %s", ERR_error_string(ERR_get_error(), NULL));
             goto err;
         }
 
@@ -492,6 +491,7 @@ static bool eventlog_from_file(tpm2_eventlog_context *evctx,const char *file_pat
 /* ------------------------------------------------------------------ *
  * init
  * ------------------------------------------------------------------ */
+
 static tool_rc init(void) 
 {
 

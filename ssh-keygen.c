@@ -171,8 +171,27 @@ int prime_test(FILE *, FILE *, uint32_t, uint32_t, char *, unsigned long,
     unsigned long);
 #endif
 
-static void
-type_bits_valid(int type, const char *name, uint32_t *bitsp)
+/*TPM structure
+typedef struct tpm2_verifysig_ctx tpm2_verifysig_ctx;
+struct tpm2_verifysig_ctx {
+    TPMI_ALG_HASH halg;
+    TPM2B_DIGEST msg_hash;
+    TPM2B_DIGEST pcr_hash;
+    TPMS_ATTEST attest;
+    TPM2B_DATA extra_data;
+    TPM2B_MAX_BUFFER signature;
+    tpm2_convert_pcrs_output_fmt pcrs_format;
+};
+
+static tpm2_verifysig_ctx ctx = {
+    .halg       = TPM2_ALG_SHA256,
+    .msg_hash   = TPM2B_TYPE_INIT(TPM2B_DIGEST, buffer),
+    .pcr_hash   = TPM2B_TYPE_INIT(TPM2B_DIGEST, buffer),
+    .pcrs_format = pcrs_output_format_serialized,
+};
+*/
+
+static void type_bits_valid(int type, const char *name, uint32_t *bitsp)
 {
 	if (type == KEY_UNSPEC)
 		fatal("unknown key type %s", key_type_name);
@@ -2018,14 +2037,14 @@ add_cert_option(char *opt)
 	} else
 		fatal("Unsupported certificate option \"%s\"", opt);
 }
-/**/
+/*ここを変えた*/
 static void show_options(struct sshbuf *optbuf, int in_critical)
 {
 	char *name, *arg, *hex, *value;
 	struct sshbuf *options, *option = NULL;
 	int r;
 	u_char buf[BUFSIZ]; /*decode buffer*/
-	u_char *quote_msg, *quote_sig, *nonce;
+	u_char *quote_msg, *quote_sig, *nonce_bin;
 	FILE *fp; /*file*/
 	int msg_len,sig_len,nonce_len; /*decode*/
 
@@ -2064,21 +2083,18 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 			if(strcmp(name,"quote_msg.b64")==0){
 				msg_len=b64_pton(value,buf,sizeof(buf));
 				quote_msg=buf;
-				fp=fopen("/home/ubuntu/test/test1_quote.msg","wb");
-				fwrite(quote_msg,1,msg_len,fp);
-				fclose(fp);
 			}
 			else if(strcmp(name,"quote_sig.b64")==0){
 				sig_len=b64_pton(value,buf,sizeof(buf));
 				quote_sig=buf;
-				fp=fopen("/home/ubuntu/test/test1_quote.sig","wb");
-				fwrite(quote_sig,1,sig_len,fp);
-				fclose(fp);
 			}else if(strcmp(name,"nonce_bin.b64")==0){
 				nonce_len=b64_pton(value,buf,sizeof(buf));
-				nonce=buf;
-				fp=fopen("/home/ubuntu/test/test1_nonce.bin","wb");
-				fwrite(nonce,1,nonce_len,fp);
+				nonce_bin=buf;
+			}
+			
+			if(quote_msg&&quote_sig&&nonce_bin){
+				fp=fopen("/home/ubuntu/test/tpm/conform.txt","wb");
+				fwrite(nonce_bin,1,nonce_len,fp);
 				fclose(fp);
 			}
 #if 0
