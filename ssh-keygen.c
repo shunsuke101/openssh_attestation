@@ -73,8 +73,10 @@
 #include "tpm2_tool_output.h"                                     
 #include "tpm2_eventlog.h"
 #include "tpm2_util.h"                                       
-#include "tss2_common.h"                                          
-#include "tss2_mu.h" 
+
+/*tss2 headerfile add*/
+#include <tss2/tss2_common.h>
+#include <tss2/tss2_mu.h>
 
 #ifdef ENABLE_PKCS11
 #include "ssh-pkcs11.h"
@@ -209,49 +211,44 @@ static const int rsaPadding[N_PADDING] = {
     RSA_PKCS1_PADDING,
     RSA_PKCS1_PSS_PADDING
 };
-
-static TPM2B_ATTEST *message_from_cert(unsigned char *msg_cert,unsigned long size) 
+/*tpm2_checkquote.c内の内部関数、message_from_fileを参考に、fileから、データを取得したくないので、
+　fileから取得する部分を変えて、certificateから取得したデータをそのまま構造体に代入できるようにする
+　
+*/
+static tool_rc message_from_cert(unsigned char *msg_cert,unsigned long size) 
 {
+    	tool_rc return_value = tool_rc_general_error;
     	TPM2B_ATTEST *msg = (TPM2B_ATTEST *)calloc(1, sizeof(TPM2B_ATTEST) + size);
     	if (!msg) {
-        	return NULL;
+        	goto err;
    	}
 
-    	UINT16 tmp = msg->size = size;
+    	msg->size = size;
     	memcpy(msg->attestationData,msg_cert,size);
     	if (!(size)) {
-        	free(msg);
-        	return NULL;
+        	goto err;
     	}
-    	tool_rc tmp_rc=files_tpm2b_to_tpms_attest(msg,&ctx.attest);tool_rc tmp_rc = files_tpm2b_attest_to_tpms_attest(msg,&ctx.attest);
+	tool_rc tmp_rc = files_tpm2b_attest_to_tpms_attest(msg,&ctx.attest);
     	if (tmp_rc != tool_rc_success) {
         	return_value = tmp_rc;
         	goto err;
    	 }
 
-    	if (ctx.flags.pcr) {
-        	if (!compare_pcr_selection(&ctx.attest.attested.quote.pcrSelect, &pcr_select)) {
-            	LOG_ERR("PCR selection does not match PCR selection from attest!");
-            	goto err;
-        	}
-    	}
-
-    	res = tpm2_openssl_hash_compute_data(ctx.halg,msg->attestationData, msg->size,&ctx.msg_hash);
+    	bool res = tpm2_openssl_hash_compute_data(ctx.halg,msg->attestationData, msg->size,&ctx.msg_hash);
     	if (!res) {
-        	LOG_ERR("Compute message hash failed!");
         	goto err;
     	}
-
     	return_value = tool_rc_success;
 
 	err:
-    	free(msg);
-    	return return_value;
+    		free(msg);
+    		return return_value;
 }
 
 /*
 この関数は、tpm2-tools/lib/tpm2_convert.cのtpm2_convert_sig_load_plain()関数から、tpm2-tools/lib/file.cのtpm2_load_sig_slint()を見て、pathを使わない設計で、fread()でファイルのデータを取得しているのだが、これをやめて、certificateから来た、dataをtpm2のstructureに合わせたい。
 */
+
 static tool_rc signature_from_cert(unsigned char *sig_cert,unsigned long size)
 {
     	/*
@@ -259,53 +256,41 @@ static tool_rc signature_from_cert(unsigned char *sig_cert,unsigned long size)
      	*
      	* So load it up into the TPMT Structure
      	*/
+    	tool_rc return_value = tool_rc_general_error;
 	TPMI_ALG_HASH expected_halg = TPM2_ALG_ERROR;
     	TPMT_SIGNATURE tmp = { 0 };
 	size_t offset = 0;
+    	UINT8 *buffer;
+	UINT16 size_u16=(UINT16)size;
        
-        TSS2_RC rc = Tss2_MU_TPMT_SIGNATURE_Unmarshal(sig_cert,(UINT16)size, &offset, signature); 
+        TSS2_RC rc = Tss2_MU_TPMT_SIGNATURE_Unmarshal(sig_cert,size_u16, &offset, &tmp); 
      
 	if (rc != TSS2_RC_SUCCESS) {
         	/* plain signatures are just used as is */
-        	*halg = TPM2_ALG_NULL;
+        	expected_halg = TPM2_ALG_NULL;
 
-        	signature->size = sizeof(signature->buffer);
-        	return files_load_bytes_from_path(path, signature->buffer, &signature->size);
+        	ctx.signature.size = sizeof(ctx.signature.buffer);
+        	/*return files_load_bytes_from_path(path, ctx.signature->buffer, &ctx.signature->size);*/
     	}
-    	*halg = tmp.signature.any.hashAlg;
+    	expected_halg = tmp.signature.any.hashAlg;
 
     	/* Then convert it to plain, but into a buffer */
-    	UINT8 *buffer;
 
-    	buffer = tpm2_convert_sig(&size, &tmp);
+    	buffer = tpm2_convert_sig(&(size_u16), &tmp);
     	if (buffer == NULL) {
-        	return false;
+        	return tool_rc_general_error;
     	}
 
-    	if (size > sizeof(signature->buffer)) {
-        	LOG_ERR("Signature size bigger than buffer, got: %u expected"
-                	" less than %zu", size, sizeof(signature->buffer));
+    	if (size_u16 > sizeof(ctx.signature.buffer)) {
         	free(buffer);
-        	return false;
+        	return tool_rc_general_error;
     	}
 
-   	signature->size = size;
-    	memcpy(signature->buffer, buffer, size);
+   	ctx.signature.size = size_u16;
+    	memcpy(ctx.signature.buffer, buffer, size_u16);
     	free(buffer);
 
-      	if (!res)
-        	goto err;
-
-    	if (expected_halg != TPM2_ALG_NULL) {
-        	if (ctx.halg != expected_halg) {
-            	if (ctx.flags.hlg) {
-                	const char *got_str = tpm2_alg_util_algtostr(ctx.halg, tpm2_alg_util_flags_any);
-                	const char *expected_str = tpm2_alg_util_algtostr(expected_halg, tpm2_alg_util_flags_any);
-                	LOG_WARN("User specified hash algorithm of \"%s\", does not match expected hash algorithm of \"%s\", using: \"%s\"",got_str, expected_str, expected_str);
-            		}
-            	ctx.halg = expected_halg;
-        	}
-    	}
+    	return tool_rc_success;
 }
 
 /*
@@ -314,12 +299,13 @@ static tool_rc signature_from_cert(unsigned char *sig_cert,unsigned long size)
 
 static tool_rc nonce_from_cert(unsigned char *nonce_cert,unsigned long size)
 {
-	ctx.extra_data.size = sizeof(ctx.extra_data.buffer);
-        if (!tpm2_util_bin_from_hex_or_file(nonce_cert,&ctx.extra_data.size, ctx.extra_data.buffer))
+	memcpy(ctx.extra_data.buffer,nonce_cert,size);
+	ctx.extra_data.size=(UINT16)size;
+	return tool_rc_success;
             
 }
 
-static bool verify(void)
+static bool verify(FILE *fp)
 {
 	bool result = false;
     	EVP_PKEY_CTX *pkey_ctx = NULL;
@@ -330,34 +316,41 @@ static bool verify(void)
     	if (!ret) {
         	return false;
     	}
-    	tpm2_tool_output("sig: ");
-    	tpm2_util_hexdump(ctx.signature.buffer, ctx.signature.size);
-    	tpm2_tool_output("\n");
+    	fprintf(fp,"sig:");
+	for(int i=0;i<ctx.signature.size;i++)
+		fprintf(fp,"%02X",ctx.signature.buffer[i]);
+	fprintf(fp,"%d",ctx.signature.size);
+	fprintf(fp,"\n");
 
     	for (int i = 0; i < N_PADDING; i++) {
         	pkey_ctx = EVP_PKEY_CTX_new(pkey, NULL);
         	if (!pkey_ctx) {
+		    	fprintf(fp,"EVP_PKEY_CTX_new failed");	
             		goto err;
         	}
 
         	const EVP_MD *md = tpm2_openssl_md_from_tpmhalg(ctx.halg);
         	if (!md) {
+			fprintf(fp,"Algorithm not support %X",ctx.halg);
             		goto err;
         	}
 
         	rc = EVP_PKEY_verify_init(pkey_ctx);
         	if (!rc) {
+			fprintf(fp,"EVP_PKEY_verify_init faid");
             		goto err;
         	}
 
         	rc = EVP_PKEY_CTX_set_signature_md(pkey_ctx, md);
         	if (!rc) {
+			fprintf(fp,"EVP_PKEY_CTX_set_signature_md faided");
             		goto err;
        	 	}
 
         	if (rsaPadding[i] != -1) {
             		rc = EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, rsaPadding[i]);
             		if (rc < 0) {
+				fprintf(fp,"EVP_PKEY_CTX_set_rsa_padding");
                 		goto err;
             		}
         	}
@@ -374,11 +367,13 @@ static bool verify(void)
     	/* nonce*/
     	if (ctx.attest.extraData.size != ctx.extra_data.size ||
             memcmp(ctx.attest.extraData.buffer, ctx.extra_data.buffer, ctx.extra_data.size) != 0) {
-        	goto err;
+        	fprintf(fp,"Error validating nonce from quote");
+		goto err;
     	}
     	/* magic*/
     	if (ctx.attest.magic != TPM2_GENERATED_VALUE) {
-        	return false;
+		fprintf(fp,"Bad magic gpt");        	
+		return false;
     	}
 
     	result = true;
@@ -386,6 +381,7 @@ static bool verify(void)
 	err:
     		EVP_PKEY_free(pkey);
     		EVP_PKEY_CTX_free(pkey_ctx);
+
     	return result;
 }
 
@@ -2276,8 +2272,7 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fatal_fr(r, "parse critical");
 			printf(" %s\n", arg);
 			free(arg);
-		} else if (in_critical &&
-		    strcmp(name, "verify-required") == 0) {
+		} else if (in_critical && strcmp(name, "verify-required") == 0) {
 			printf("\n");
 		} else if (sshbuf_len(option) > 0) {
 			hex = sshbuf_dtob16(option);
@@ -2286,26 +2281,43 @@ static void show_options(struct sshbuf *optbuf, int in_critical)
 				fatal_fr(r,"parse option");
 			if(strcmp(name,"quote_msg.b64")==0){
 				msg_len=b64_pton(value,buf,sizeof(buf));
-				message_from_certificate(buf,msg_len);
+				message_from_cert(buf,msg_len);	
 			}
 			else if(strcmp(name,"quote_sig.b64")==0){
 				sig_len=b64_pton(value,buf,sizeof(buf));
-				quote_sig=buf;
+				signature_from_cert(buf,sig_len);
 			}else if(strcmp(name,"nonce_bin.b64")==0){
 				nonce_len=b64_pton(value,buf,sizeof(buf));
-				nonce_bin=buf;
+				nonce_from_cert(buf,nonce_len);
 			}
-			
-			if(ctx.msg_hash.size&&ctx.signature.size&&ctx.extraData.size){
-				char comfirm[BUFSIZ]="success input struct"; 
-				fp=fopen("/home/ubuntu/openssh_attestation/conform.txt","wb");
-				fclose(fp);
+			if(ctx.msg_hash.size&&ctx.signature.size&&ctx.extra_data.size){
+				char comfirm[BUFSIZ]="success input struct ctx data"; 
+				fp=fopen("/home/ubuntu/openssh_attestation/conform.txt","w");
+				fprintf(fp,"success input struct\n");
+				fprintf(fp,"ctx.msg_hash.size %d\n",ctx.msg_hash.size);
+				for(int i=0;i<ctx.msg_hash.size;i++)
+					fprintf(fp,"%02X",ctx.msg_hash.buffer[i]);
+				fprintf(fp,"\n");
+				fprintf(fp,"ctx.signature.size %d\n",ctx.signature.size);
+				for(int i=0;i<ctx.signature.size;i++)
+					fprintf(fp,"%02X",ctx.signature.buffer[i]);
+				fprintf(fp,"\n");
+				fprintf(fp,"ctx.extra_data.size %d\n",ctx.extra_data.size);
+				for(int i=0;i<ctx.extra_data.size;i++)
+					fprintf(fp,"%02X",ctx.extra_data.buffer[i]);
+				fprintf(fp,"\n");
+				bool res=verify(fp);
+					if(res==true){
+						fprintf(fp,"Verify OK\n");
+					}else{
+						fprintf(fp,"Verify signature faied\n");
+					}	
+				fclose(fp);				
 			}
-
 			printf(" UNKNOWN OPTION: %s (len %zu)\n",hex,hex_len);
 			sshbuf_reset(option);
 			free(hex);
-		} else
+		}else
 			printf(" UNKNOWN FLAG OPTION\n");
 		free(name);
 		if (sshbuf_len(option) != 0)
