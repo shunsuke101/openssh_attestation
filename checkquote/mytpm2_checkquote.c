@@ -15,6 +15,9 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 
+#include <tss2/tss2_common.h>
+#include <tss2/tss2_mu.h>
+
 #include "files.h"
 #include "log.h"
 #include "tpm2_alg_util.h"
@@ -22,11 +25,7 @@
 #include "tpm2_openssl.h"
 #include "tpm2_tool_output.h"
 #include "tpm2_eventlog.h"
-#include "tss2_common.h"
-#include "tss2_mu.h"
 
-/* ------------------------------------------------------------------ *
- * ------------------------------------------------------------------ */
 typedef struct tpm2_verifysig_ctx tpm2_verifysig_ctx;
 struct tpm2_verifysig_ctx {
     union {
@@ -72,6 +71,7 @@ static const int rsaPadding[N_PADDING] = {
 /* ------------------------------------------------------------------ *
  * compare_pcr_selection
  * ------------------------------------------------------------------ */
+
 static bool compare_pcr_selection(TPML_PCR_SELECTION *attest_sel, TPML_PCR_SELECTION *pcr_sel) 
 {
     if (attest_sel->count != pcr_sel->count) {
@@ -322,7 +322,6 @@ static bool parse_selection_data_from_file(FILE *pcr_input, TPML_PCR_SELECTION *
         pcr_select->pcrSelections[i].hash =
             le16toh(pcr_select->pcrSelections[i].hash);
     }
-
     if (fread(&pcrs->count, sizeof(UINT32), 1, pcr_input) != 1) {
         LOG_ERR("Failed to read PCR digests header from file");
         return false;
@@ -366,7 +365,6 @@ static bool parse_selection_data_from_file(FILE *pcr_input, TPML_PCR_SELECTION *
 
 static bool parse_marshaled_selection_data(FILE *pcr_input, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs, unsigned long fsize) 
 {
-
     size_t i;
     uint8_t *buffer = NULL;
     UINT16 size = fsize;
@@ -424,7 +422,6 @@ error:
 
 static bool pcrs_from_file(const char *pcr_file_path, TPML_PCR_SELECTION *pcr_select, tpm2_pcrs *pcrs)
 {
-
     bool result = false;
     unsigned long size;
 
@@ -494,7 +491,6 @@ static bool eventlog_from_file(tpm2_eventlog_context *evctx,const char *file_pat
 
 static tool_rc init(void) 
 {
-
     if (!(ctx.pubkey_file_path && ctx.flags.sig && ctx.flags.msg)) {
         LOG_ERR("--pubkey (-u), --msg (-m) and --sig (-s) are required");
         return tool_rc_option_error;
@@ -638,8 +634,7 @@ static tool_rc init(void)
     }
 
     if (ctx.flags.pcr) {
-        if (!compare_pcr_selection(&ctx.attest.attested.quote.pcrSelect,
-                                   &pcr_select)) {
+        if (!compare_pcr_selection(&ctx.attest.attested.quote.pcrSelect, &pcr_select)) {
             LOG_ERR("PCR selection does not match PCR selection from attest!");
             goto err;
         }
@@ -658,8 +653,6 @@ err:
     return return_value;
 }
 
-/* ------------------------------------------------------------------ *
- * ------------------------------------------------------------------ */
 static void print_usage(const char *prog) {
     fprintf(stderr,
         "Usage: %s -u <pubkey> -m <msg> -s <sig> [options]\n"
@@ -685,8 +678,8 @@ static void print_usage(const char *prog) {
 /* ------------------------------------------------------------------ *
  * main
  * ------------------------------------------------------------------ */
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv) 
+{
     umask(0117);
     setvbuf(stdin,  NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);

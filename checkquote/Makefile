@@ -5,6 +5,7 @@ COPY_DIR=/home/ubuntu/.ssh
 
 DEP_SRC=$(wildcard $(DEP_DIR)/*.c)
 FINAL_OBJS=$(DEP_SRC:.c=.o)
+LIB=$(DEP_DIR)/libcommon.a
 
 CFLAGS= -I /usr/include/tss2 -I $(DEP_DIR)
 LDFLAGS= -lssl -lcrypto -ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-rc
@@ -12,7 +13,7 @@ LDFLAGS= -lssl -lcrypto -ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-r
 TARGET=tpm2_checkquote
 CLEAN_TARGET=certificate*
 
-all:mytpm2_checkquote.c $(FINAL_OBJS)
+all:mytpm2_checkquote.c $(LIB)
 	$(CC) -o $(TARGET) $? $(CFLAGS) $(LDFLAGS)
 
 $(DEP_DIR)/%.o:$(DIP_DIR)/%.c
