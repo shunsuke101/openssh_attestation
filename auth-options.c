@@ -172,22 +172,28 @@ static tool_rc nonce_from_cert(unsigned char *nonce_cert,unsigned long size)
             
 }
 
+/*
+tpm2_chechqoute.c内の関数であり、今回、quote.msg、quote.sig、nonce.binのみの検証なので、元々の関数から必要なものだけをverifyの関数に入れた。
+*/
+
 static bool verify(void)
 {
 	bool result = false;
     	EVP_PKEY_CTX *pkey_ctx = NULL;
     	int rc;
-	unsigned int buffer;
     	EVP_PKEY *pkey = NULL;
     	bool ret = tpm2_public_load_pkey("/home/ubuntu/.ssh/certificate_ak.pub", &pkey);
     	if (!ret) {
         	return false;
     	}
-    	logit("sig:");
+	char hex_buf[512];
+	char *p=hex_buf;
 	for(int i=0; i < ctx.signature.size;i++){
-		buffer=ctx.signature.buffer[i];	
+		int written=sprintf(p,"%2X",ctx.signature.buffer[i]);
+		p+=written;	
 	}
-	logit("%X",buffer);
+	logit("sig:%s",hex_buf);
+
     	for (int i = 0; i < N_PADDING; i++) {
         	pkey_ctx = EVP_PKEY_CTX_new(pkey, NULL);
         	if (!pkey_ctx) {
@@ -250,10 +256,6 @@ static bool verify(void)
     		return result;
 }
 
-
-
-
-
 static int
 dup_strings(char ***dstp, size_t *ndstp, char **src, size_t nsrc)
 {
@@ -307,8 +309,7 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 			error_r(r, "Unable to parse certificate options");
 			goto out;
 		}
-		debug3("found certificate option \"%.100s\" len %zu",
-		    name, sshbuf_len(data));
+		debug3("found certificate option \"%.100s\" len %zu", name, sshbuf_len(data));
 		found = 0;
 		if ((which & OPTIONS_EXTENSIONS) != 0) {
 			if (strcmp(name, "no-touch-required") == 0) {
@@ -340,13 +341,11 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 			} else if (strcmp(name, "force-command") == 0) {
 				if ((r = sshbuf_get_cstring(data, &command,
 				    NULL)) != 0) {
-					error_r(r, "Unable to parse \"%s\" "
-					    "section", name);
+					error_r(r, "Unable to parse \"%s\" section", name);
 					goto out;
 				}
 				if (opts->force_command != NULL) {
-					error("Certificate has multiple "
-					    "force-command options");
+					error("Certificate has multiple force-command options");
 					free(command);
 					goto out;
 				}
@@ -355,20 +354,17 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 			} else if (strcmp(name, "source-address") == 0) {
 				if ((r = sshbuf_get_cstring(data, &allowed,
 				    NULL)) != 0) {
-					error_r(r, "Unable to parse \"%s\" "
-					    "section", name);
+					error_r(r, "Unable to parse \"%s\" section", name);
 					goto out;
 				}
 				if (opts->required_from_host_cert != NULL) {
-					error("Certificate has multiple "
-					    "source-address options");
+					error("Certificate has multiple source-address options");
 					free(allowed);
 					goto out;
 				}
 				/* Check syntax */
 				if (addr_match_cidr_list(NULL, allowed) == -1) {
-					error("Certificate source-address "
-					    "contents invalid");
+					error("Certificate source-address contents invalid");
 					free(allowed);
 					goto out;
 				}
@@ -379,8 +375,7 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 
 		if (!found) {
 			if (crit) {
-				error("Certificate critical option \"%s\" "
-				    "is not supported", name);
+				error("Certificate critical option \"%s\" is not supported", name);
 				goto out;
 			} else {
 				if ((r = sshbuf_get_cstring(data, &value, NULL)) != 0 )
@@ -398,17 +393,15 @@ static int cert_option_list(struct sshauthopt *opts, struct sshbuf *oblob, u_int
 					len=b64_pton(value,buf,sizeof(buf));
 					nonce_from_cert(buf,len);
 				}else{
-					logit("Certificate extension \"%s\" "
-				    	"is not supported", name);
+					logit("Certificate extension \"%s\" is not supported", name);
 				}
 				if(ctx.msg_hash.size&&ctx.signature.size&&ctx.extra_data.size){
 					bool res=verify();
-					if(res=true){
+					if(res == true){
 						logit("Verify OK");
 					}else{
-						logit("Verify signature failed");
+						error("Verify signature failed");
 					}
-				
 				}
 			}	
 		}else if (sshbuf_len(data) != 0) {
