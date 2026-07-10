@@ -781,7 +781,6 @@ static bool on_option(char key, char *value) {
     case 'l':
         ctx.pcr_selection_string = value;
         break;
-        /* no default */
     }
 
     return true;

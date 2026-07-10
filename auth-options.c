@@ -80,7 +80,8 @@ static const int rsaPadding[N_PADDING] = {
     RSA_PKCS1_PSS_PADDING
 };
 
-/*tpm2_checkquote.c内の内部関数、message_from_fileを参考に、fileから、データを取得したくないので、
+/*
+tpm2_checkquote.c内の内部関数、message_from_fileを参考に、fileから、データを取得したくないので、
 　fileから取得する部分を変えて、certificateから取得したデータをそのまま構造体に代入できるようにする
 */
 
@@ -115,7 +116,7 @@ static tool_rc message_from_cert(unsigned char *msg_cert,unsigned long size)
 }
 
 /*
-この関数は、tpm2-tools/lib/tpm2_convert.cのtpm2_convert_sig_load_plain()関数から、tpm2-tools/lib/file.cのtpm2_load_sig_slint()を見て、pathを使わない設計で関数を作り替え、元々の関数はfread()でファイルのデータを取得しているのだが、これをやめて、certificateから来た、dataをtpm2のstructureに合わせたい。
+この関数は、tpm2-tools/lib/tpm2_convert.cのtpm2_convert_sig_load_plain()関数から、tpm2-tools/lib/file.cのtpm2_load_sig_slint()を見て、pathを使わない設計で関数を作り替え、元々の関数はfread()でファイルのデータを取得しているのだが、これをやめて、certificateから来た、dataをtpm2のstructureに合わせたい。これは、sig_certを一発でmemcpyは使えなくて、TPMT_SIGNATUREの型変換を行ってから、TPM2B_MAX_BUFFERに、合わせた値を代入する
 */
 
 static tool_rc signature_from_cert(unsigned char *sig_cert,unsigned long size)
