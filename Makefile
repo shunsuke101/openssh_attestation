@@ -34,7 +34,7 @@ BUILDDIR=/home/ubuntu/openssh-portable
 SK_STANDALONE=
 COMPATINCLUDES="$(BUILDDIR)/openbsd-compat/include"
 
-#tpm header directly
+#tpm header directory add
 TSSINCLUDES=/usr/include/tss2 
 TPM2_LIBDIR=$(BUILDDIR)/tpm2-tools/lib
 
@@ -79,6 +79,7 @@ MKDIR_P=/usr/bin/mkdir -p
 #TPMのLIBRARYのマクロを定義
 TPM2LIBS=-ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-rc
 LIBTPM=$(TPM2_LIBDIR)/libcommon.a
+
 .SUFFIXES: .lo
 
 TARGETS=ssh$(EXEEXT) sshd$(EXEEXT) sshd-session$(EXEEXT) sshd-auth$(EXEEXT) ssh-add$(EXEEXT) ssh-keygen$(EXEEXT) ssh-keyscan${EXEEXT} ssh-keysign${EXEEXT} ssh-pkcs11-helper$(EXEEXT) ssh-agent$(EXEEXT) scp$(EXEEXT) sftp-server$(EXEEXT) sftp$(EXEEXT) ssh-sk-helper$(EXEEXT) $(SK_STANDALONE)
@@ -231,11 +232,11 @@ ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS)
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS)
 	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(CHANNELLIBS)
 
-#TPM2LIBSを追加した LIBTPMとTPM2LIBS
+#TPM2LIBS、LIBTPM、TPM2LIBS add
 sshd-session$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHD_SESSION_OBJS)
 	$(LD) -o $@ $(SSHD_SESSION_OBJS) $(LIBTPM) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TPM2LIBS)
 
-#TPM2LIBSを追加した LIBTPMとTPMLIBSを追加した
+#TPM2LIBS、LIBTPM、TPM2LIBS add
 sshd-auth$(EXEEXT): libssh.a $(LIBCOMPAT) $(SSHD_AUTH_OBJS)
 	$(LD) -o $@ $(SSHD_AUTH_OBJS) $(LIBTPM) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TPM2LIBS)
 
@@ -248,7 +249,7 @@ ssh-add$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHADD_OBJS)
 ssh-agent$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHAGENT_OBJS)
 	$(LD) -o $@ $(SSHAGENT_OBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS)
 
-#TPM2LIBSを追加した LIBTPMとTPM2LIBSを追加した
+#TPM2LIBS、LIBTPM、TPM2LIBS add
 ssh-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHKEYGEN_OBJS)
 	$(LD) -o $@ $(SSHKEYGEN_OBJS) $(LIBTPM) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS) $(TPM2LIBS) 
 
@@ -1033,7 +1034,7 @@ ssh-ed25519-sk.o: includes.h config.h defines.h platform.h openbsd-compat/openbs
 ssh-ed25519.o: includes.h config.h defines.h platform.h openbsd-compat/openbsd-compat.h openbsd-compat/base64.h openbsd-compat/sigact.h openbsd-compat/readpassphrase.h openbsd-compat/vis.h openbsd-compat/getrrsetbyname.h openbsd-compat/sha1.h openbsd-compat/bsd-sha2.h openbsd-compat/md5.h openbsd-compat/blf.h openbsd-compat/fnmatch.h openbsd-compat/getopt.h openbsd-compat/bsd-signal.h openbsd-compat/bsd-misc.h openbsd-compat/bsd-setres_id.h openbsd-compat/bsd-statvfs.h openbsd-compat/bsd-waitpid.h openbsd-compat/bsd-poll.h openbsd-compat/fake-rfc2553.h openbsd-compat/bsd-cygwin_util.h openbsd-compat/port-aix.h openbsd-compat/port-irix.h openbsd-compat/port-linux.h openbsd-compat/port-solaris.h openbsd-compat/port-net.h openbsd-compat/port-uw.h openbsd-compat/bsd-nextstep.h entropy.h crypto_api.h log.h ssherr.h sshbuf.h sshkey.h
 ssh-keygen.o: cipher-chachapoly.h chacha.h poly1305.h cipher-aesctr.h rijndael.h
 ssh-keygen.o: includes.h config.h defines.h platform.h openbsd-compat/openbsd-compat.h openbsd-compat/base64.h openbsd-compat/sigact.h openbsd-compat/readpassphrase.h openbsd-compat/vis.h openbsd-compat/getrrsetbyname.h openbsd-compat/sha1.h openbsd-compat/bsd-sha2.h openbsd-compat/md5.h openbsd-compat/blf.h openbsd-compat/fnmatch.h openbsd-compat/getopt.h openbsd-compat/bsd-signal.h openbsd-compat/bsd-misc.h openbsd-compat/bsd-setres_id.h openbsd-compat/bsd-statvfs.h openbsd-compat/bsd-waitpid.h openbsd-compat/bsd-poll.h openbsd-compat/fake-rfc2553.h openbsd-compat/bsd-cygwin_util.h openbsd-compat/port-aix.h openbsd-compat/port-irix.h openbsd-compat/port-linux.h openbsd-compat/port-solaris.h openbsd-compat/port-net.h openbsd-compat/port-uw.h openbsd-compat/bsd-nextstep.h entropy.h xmalloc.h sshkey.h authfile.h sshbuf.h pathnames.h log.h ssherr.h misc.h match.h hostfile.h dns.h ssh.h ssh2.h atomicio.h krl.h digest.h utf8.h authfd.h sshsig.h ssh-sk.h sk-api.h cipher.h
-#ここにtpmのheaderfileとの関係を書いた
+#tpm's headerfile add
 ssh-keygen.o:tpm2-tools/lib/files.h tpm2-tools/lib/log.h tpm2-tools/lib/tpm2_alg_util.h tpm2-tools/lib/tpm2_convert.h tpm2-tools/lib/tpm2_openssl.h tpm2-tools/lib/tpm2_tool_output.h tpm2-tools/lib/tpm2_eventlog.h /usr/include/tss2/tss2_common.h /usr/include/tss2/tss2_mu.h 
 ssh-keyscan.o: atomicio.h misc.h hostfile.h ssh_api.h ssh2.h dns.h addr.h
 ssh-keyscan.o: includes.h config.h defines.h platform.h openbsd-compat/openbsd-compat.h openbsd-compat/base64.h openbsd-compat/sigact.h openbsd-compat/readpassphrase.h openbsd-compat/vis.h openbsd-compat/getrrsetbyname.h openbsd-compat/sha1.h openbsd-compat/bsd-sha2.h openbsd-compat/md5.h openbsd-compat/blf.h openbsd-compat/fnmatch.h openbsd-compat/getopt.h openbsd-compat/bsd-signal.h openbsd-compat/bsd-misc.h openbsd-compat/bsd-setres_id.h openbsd-compat/bsd-statvfs.h openbsd-compat/bsd-waitpid.h openbsd-compat/bsd-poll.h openbsd-compat/fake-rfc2553.h openbsd-compat/bsd-cygwin_util.h openbsd-compat/port-aix.h openbsd-compat/port-irix.h openbsd-compat/port-linux.h openbsd-compat/port-solaris.h openbsd-compat/port-net.h openbsd-compat/port-uw.h openbsd-compat/bsd-nextstep.h entropy.h xmalloc.h ssh.h sshbuf.h sshkey.h cipher.h cipher-chachapoly.h chacha.h poly1305.h cipher-aesctr.h rijndael.h digest.h kex.h mac.h crypto_api.h compat.h myproposal.h packet.h dispatch.h log.h ssherr.h

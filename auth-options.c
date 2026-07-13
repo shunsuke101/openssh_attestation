@@ -54,7 +54,7 @@
 #include <tss2/tss2_common.h>
 #include <tss2/tss2_mu.h>
 
-/*TPM structure*/
+/*TPM structure add*/
 typedef struct tpm2_verifysig_ctx tpm2_verifysig_ctx;
 struct tpm2_verifysig_ctx {
     TPMI_ALG_HASH halg;
