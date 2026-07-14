@@ -76,7 +76,7 @@ EXEEXT=
 MANFMT=/usr/bin/nroff -mandoc
 MKDIR_P=/usr/bin/mkdir -p
 
-#TPMのLIBRARYのマクロを定義
+#リンクするライブラリtssのライブラリとtpm2-toolsのライブラリ
 TPM2LIBS=-ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-rc
 LIBTPM=$(TPM2_LIBDIR)/libcommon.a
 
