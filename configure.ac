@@ -151,7 +151,7 @@ AC_ARG_WITH([stackprotect],
 	use_stack_protector=0
     fi ])
 AC_ARG_WITH([hardening],
-    [  --without-hardening     Don't use toolchain hardening flags], [
+    [  --without-hardening     Don't use toolchain's: hardening flags], [
     if test "x$withval" = "xno"; then
 	use_toolchain_hardening=0
     fi ])
@@ -1977,6 +1977,86 @@ AC_ARG_WITH([wtmpdb],
 	fi ]
 )
 
+#Check whether user wants TPM2 support (sshd-session/sshd-auth/ssh-keygen)
+#linked against tpm2-tools/lib/libcommon.a + TSS2 library
+TPM2_MSG="no"
+TSS2INCLUDE="/usr/include/tss2"
+TPM2TOOLS_LIBDIR="${abs_top_builddir}/tpm2-tools/lib" 
+TSS2_LIBS=""
+TPM2TOOLS_LIBS=""
+AC_ARG_WITH([tpm2],
+	[  --with-tpm2   Enable TPM2 and TSS2 support for sshd-auth,sshd-session,ssh-keygen],
+	[ if test "x$withval" = "xyes" ; then
+		saved_CPPFLAGS="$CPPFLAGS"
+		CPPFLAGS="$CPPFLAGS -I${TSS2INCLUDE} -I${TPM2_LIBDIR}"
+
+		# TSS2 headers required for TPM2 support.
+		AC_CHECK_HEADERS([ \
+			tss2_common.h \
+			tss2_mu.h \
+			], [], [
+				AC_MSG_ERROR([$ac_header not found in $TSS2INCLUDE - install tpm2-tss-dev or check config.log])
+			])
+
+		# tpm2-tools headers required for TPM2 support.
+		AC_CHECK_HEADERS([ \
+			files.h \
+			log.h \
+			tpm2_alg_util.h \
+			tpm2_convert.h \
+			tpm2_openssl.h \
+			tpm2_tool_output.h \
+			tpm2_eventlog.h \
+			], [], [
+				AC_MSG_ERROR([$ac_header not found in $TPM2_LIBDIR - build tpm2-tools first under the build tree, or check config.log])
+			])
+
+		use_pkgconfig_for_tss2=
+		if test "x$PKGCONFIG" = "xyes"; then
+			AC_MSG_CHECKING([if $PKGCONFIG knows about tss2-esys])
+			if "$PKGCONFIG" tss2-esys tss2-sys tss2-mu tss2-tctildr tss2-rc; then
+				AC_MSG_RESULT([yes])
+				use_pkgconfig_for_tss2=yes
+			else
+				AC_MSG_RESULT([no])
+			fi
+		fi
+		if test "x$use_pkgconfig_for_tss2" = "xyes" ; then
+			TSS2_LIBS=`--libs tss2-esys tss2-sys tss2-mu tss2-tctildr tss2-rc`
+			TPM2_CPPFLAGS="$CPPFLAGS `$PKGCONFIG --cflags tss2-esys tss2-sys tss2-mu tss2-tctildr tss2-rc`"
+		else
+			TSS2_LIBS="-ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-rc"
+		fi
+
+		AC_CHECK_LIB([tss2-esys], [main], [],
+			[AC_MSG_ERROR([libtss2-esys not usable - install tpm2-tss or check config.log])], [])
+		AC_CHECK_LIB([tss2-sys], [main], [],
+			[AC_MSG_ERROR([libtss2-esys not usable - install tpm2-tss or check config.log])], [])
+		AC_CHECK_LIB([tss2-mu], [main], [],
+			[AC_MSG_ERROR([libtss2-esys not usable - install tpm2-tss or check config.log])], [])
+		AC_CHECK_LIB([tss2-tctildr], [main], [],
+			[AC_MSG_ERROR([libtss2-esys not usable - install tpm2-tss or check config.log])], [])
+		AC_CHECK_LIB([tss2-rc], [main], [],
+			[AC_MSG_ERROR([libtss2-esys not usable - install tpm2-tss or check config.log])], [])
+
+		AC_MSG_CHECKING([for tpm2-tools libcommon.a in ${TPM2_LIBDIR}])
+		if test -f "${TPM2_LIBDIR}/libcommon.a" ; then
+			AC_MSG_RESULT([yes])
+			TPM2TOOLS_LIBS="${TPM2TOOLS_LIBDIR}/libcommon.a"
+		else
+			AC_MSG_RESULT([no])
+			AC_MSG_ERROR([libcommon.a not found under ${TPM2TOOLS_LIBDIR} - build tpm2-tools first under the build tree])
+		fi
+
+		TPM2_CPPFLAGS=""
+		AC_DEFINE([WITH_TPM2], [1], [Define if you want TPM2 support])
+		TPM2_MSG="yes"
+	fi ]
+)
+AC_SUBST([TSS2INCLUDE])
+AC_SUBST([TPM2TOOLS_LIBDIR])
+AC_SUBST([TSS2_LIBS])
+AC_SUBST([TPM2TOOLS_LIBS])
 
 AUDIT_MODULE=none
 AC_ARG_WITH([audit],
