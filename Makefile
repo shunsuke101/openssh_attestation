@@ -35,10 +35,6 @@ BUILDDIR=/home/ubuntu/openssh-portable
 SK_STANDALONE=
 COMPATINCLUDES="$(BUILDDIR)/openbsd-compat/include"
 
-#tss2 and tpm2-tools headerfileがあるserchするdirectory
-TSS2INCLUDES=/usr/include/tss2 
-TPM2TOOLS_LIBDIR=$(BUILDDIR)/tpm2-tools/lib
-TPM2_CPPFLAGS=-I$(TSS2INCLUDES) -I$(TPM2TOOLS_LIBDIR)
 
 PATHS= -DSSHDIR=\"$(sysconfdir)\" \
 	-D_PATH_SSH_PROGRAM=\"$(SSH_PROGRAM)\" \
@@ -78,10 +74,13 @@ EXEEXT=
 MANFMT=/usr/bin/nroff -mandoc
 MKDIR_P=/usr/bin/mkdir -p
 
+#tss2 and tpm2-tools headerfileがあるserchするdirectory
+TSS2INCLUDES=/usr/include/tss2 
+TPM2TOOLS_LIBDIR=$(BUILDDIR)/tpm2-tools/lib
+TPM2_CPPFLAGS=-I$(TSS2INCLUDES) -I$(TPM2TOOLS_LIBDIR)
+
 #リンクするライブラリtssのライブラリとtpm2-toolsのライブラリ
 TSS2_LIBS=-ltss2-esys -ltss2-sys -ltss2-mu -ltss2-tctildr -ltss2-rc
-TPM2TOOLS_LIBS=$(TPM2TOOLS_LIBDIR)/libcommon.a
-
 
 .SUFFIXES: .lo
 
@@ -183,6 +182,11 @@ SFTPSERVER_OBJS=sftp-common.o sftp-server.o sftp-server-main.o ssherr-nolibcrypt
 
 SFTP_OBJS=	sftp.o sftp-usergroup.o progressmeter.o $(SFTP_CLIENT_OBJS)
 
+#TPM-TOOLSのOBJS
+TPM2TOOLS_LIB_SRC=$(wildcard $(TPM2TOOLS_LIBDIR)/*.c)
+TPM2TOOLS_LIB_OBJS=$(TPM2TOOLS_LIB_SRC:.c=.o)
+TPM2TOOLS_LIB=$(TPM2TOOLS_LIBDIR)/libcommon.a
+
 MANPAGES	= moduli.5.out scp.1.out ssh-add.1.out ssh-agent.1.out ssh-keygen.1.out ssh-keyscan.1.out ssh.1.out sshd.8.out sftp-server.8.out sftp.1.out ssh-keysign.8.out ssh-pkcs11-helper.8.out ssh-sk-helper.8.out sshd_config.5.out ssh_config.5.out
 MANPAGES_IN	= moduli.5 scp.1 ssh-add.1 ssh-agent.1 ssh-keygen.1 ssh-keyscan.1 ssh.1 sshd.8 sftp-server.8 sftp.1 ssh-keysign.8 ssh-pkcs11-helper.8 ssh-sk-helper.8 sshd_config.5 ssh_config.5
 MANTYPE		= doc
@@ -221,6 +225,9 @@ $(SSHDOBJS): Makefile.in config.h
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+$(TPM2TOOLS_LIBDIR)/%.o:$(TPM2TOOLS_LIBDIR)/%.c
+	$(CC) $(TPM2_CPPFLAGS) -c $< -o $@
+
 LIBCOMPAT=openbsd-compat/libopenbsd-compat.a
 $(LIBCOMPAT): always
 	(cd openbsd-compat && $(MAKE))
@@ -230,17 +237,20 @@ libssh.a: $(LIBSSH_OBJS)
 	$(AR) rv $@ $(LIBSSH_OBJS)
 	$(RANLIB) $@
 
+$(TPM2TOOLS_LIB):$(TPM2TOOLS_LIB_OBJS)
+	$(AR) crv $@ $(TPM2TOOLS_LIB_OBJS)
+
 ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS)
 	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(GSSLIBS) $(CHANNELLIBS)
 
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS)
 	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(CHANNELLIBS)
 
-sshd-session$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHD_SESSION_OBJS)
-	$(LD) -o $@ $(SSHD_SESSION_OBJS) $(TPM2TOOLS_LIBS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TSS2_LIBS)
+sshd-session$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHD_SESSION_OBJS) $(TPM2TOOLS_LIB)
+	$(LD) -o $@ $(SSHD_SESSION_OBJS) $(TPM2TOOLS_LIB) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TSS2_LIBS)
 
-sshd-auth$(EXEEXT): libssh.a $(LIBCOMPAT) $(SSHD_AUTH_OBJS)
-	$(LD) -o $@ $(SSHD_AUTH_OBJS) $(TPM2TOOLS_LIBS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TSS2_LIBS)
+sshd-auth$(EXEEXT): libssh.a $(LIBCOMPAT) $(SSHD_AUTH_OBJS) $(TPM2TOOLS_LIB)
+	$(LD) -o $@ $(SSHD_AUTH_OBJS) $(TPM2TOOLS_LIB) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) $(CHANNELLIBS) $(LIBWTMPDB) $(TSS2_LIBS)
 
 scp$(EXEEXT): $(LIBCOMPAT) libssh.a $(SCP_OBJS)
 	$(LD) -o $@ $(SCP_OBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
@@ -252,8 +262,8 @@ ssh-agent$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHAGENT_OBJS)
 	$(LD) -o $@ $(SSHAGENT_OBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS)
 
 #TPM2TOOLS_LIBS and TSS2_LIBSadd
-ssh-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHKEYGEN_OBJS)
-	$(LD) -o $@ $(SSHKEYGEN_OBJS) $(TPM2TOOLS_LIBS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS) $(TSS2_LIBS)
+ssh-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHKEYGEN_OBJS) $(TPM2TOOLS_LIB)
+	$(LD) -o $@ $(SSHKEYGEN_OBJS) $(TPM2TOOLS_LIB) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS) $(TSS2_LIBS)
 
 ssh-keysign$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHKEYSIGN_OBJS)
 	$(LD) -o $@ $(SSHKEYSIGN_OBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(CHANNELLIBS)
